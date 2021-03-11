@@ -435,8 +435,6 @@ class Convolution3D : public GenericVideoFilter
   double temporal_influence;
   short luma_limit;
   short matrix;
-  PVideoFrame fc, fp, fn; // source
-  PVideoFrame final;
 
 public:
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
@@ -505,14 +503,10 @@ private:
 
 PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
 {
-  DWORD dwDummy;
-  HANDLE ThreadIDy, ThreadIDu, ThreadIDv;
-  HANDLE y_event, u_event, v_event;
-
-  fc = child->GetFrame(n, env);
-  fp = child->GetFrame(n == 0 ? 0 : n - 1, env);
-  fn = child->GetFrame(n >= vi.num_frames - 1 ? vi.num_frames - 1 : n + 1, env);
-  final = env->NewVideoFrame(vi);
+  PVideoFrame fc = child->GetFrame(n, env);
+  PVideoFrame fp = child->GetFrame(n == 0 ? 0 : n - 1, env);
+  PVideoFrame fn = child->GetFrame(n >= vi.num_frames - 1 ? vi.num_frames - 1 : n + 1, env);
+  PVideoFrame final = env->NewVideoFrame(vi);
 
   if (copyLuma)
     env->BitBlt(final->GetWritePtr(PLANAR_Y), final->GetPitch(PLANAR_Y),
