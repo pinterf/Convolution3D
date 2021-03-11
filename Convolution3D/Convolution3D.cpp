@@ -498,7 +498,7 @@ public:
 
     if (debug)
     {
-      sprintf(dbgString, "Convolution3D for avisynth 2.5 v1.0.0.5\n");
+      sprintf(dbgString, "Convolution3D for Avisynth v1.1\n");
       OutputDebugString(dbgString);
     }
     SetCacheHints(CACHE_WINDOW, 2);
