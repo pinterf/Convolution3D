@@ -41,7 +41,7 @@ void compute_fast121(
 )
 {
   auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(0xFF);
+  auto full_f = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
   for (int ecx = 0; ecx < widthdiv16; ecx++) {
@@ -110,7 +110,7 @@ void compute_121(
 )
 {
   auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(0xFF);
+  auto full_f = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
   for (int ecx = 0; ecx < widthdiv16; ecx++) {
@@ -214,7 +214,7 @@ void compute_fast111(
 )
 {
   auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(0xFF);
+  auto full_f = _mm_set1_epi8(-1);
   auto round_11 = _mm_set1_epi16(11);
   auto multi_11 = _mm_set1_epi16((65536 / 2) / 11);
 
@@ -284,7 +284,7 @@ void compute_111(
 )
 {
   auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(0xFF);
+  auto full_f = _mm_set1_epi8(-1);
   auto round_27 = _mm_set1_epi16(27);
   auto multi_27 = _mm_set1_epi16((65536 / 2) / 27);
 
@@ -574,27 +574,27 @@ AVSValue __cdecl Create_Convolution3D(AVSValue args, void* user_data, IScriptEnv
 
 AVSValue __cdecl Create_Convolution3D_Pre(AVSValue args, void* user_data, IScriptEnvironment* env) {
   const char* myString = args[1].AsString("");
-  if (!stricmp(myString, "movieHQ"))
+  if (!_stricmp(myString, "movieHQ"))
   {
     return new Convolution3D(args[0].AsClip(), 0, 3, 4, 3, 4, 2.8, 0, env);
   }
-  else if (!stricmp(myString, "movieLQ"))
+  else if (!_stricmp(myString, "movieLQ"))
   {
     return new Convolution3D(args[0].AsClip(), 0, 6, 10, 6, 8, 2.8, 0, env);
   }
-  else if (!stricmp(myString, "animeHQ"))
+  else if (!_stricmp(myString, "animeHQ"))
   {
     return new Convolution3D(args[0].AsClip(), 0, 6, 12, 6, 8, 2.8, 0, env);
   }
-  else if (!stricmp(myString, "animeLQ"))
+  else if (!_stricmp(myString, "animeLQ"))
   {
     return new Convolution3D(args[0].AsClip(), 1, 8, 16, 8, 8, 2.8, 0, env);
   }
-  else if (!stricmp(myString, "animeBQ"))
+  else if (!_stricmp(myString, "animeBQ"))
   {
     return new Convolution3D(args[0].AsClip(), 1, 12, 22, 8, 8, 2.8, 0, env);
   }
-  else if (!stricmp(myString, "vhsBQ"))
+  else if (!_stricmp(myString, "vhsBQ"))
   {
     return new Convolution3D(args[0].AsClip(), 0, 16, 48, 10, 32, 4, 0, env);
   }
