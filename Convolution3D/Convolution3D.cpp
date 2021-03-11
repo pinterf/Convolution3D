@@ -419,6 +419,8 @@ template void process<compute_fast121<true, false>, compute_fast121<false, false
 
 class Convolution3D : public GenericVideoFilter
 {
+  bool has_at_least_v8;
+
   int debug;
 
   void (*funcPtr) (const unsigned char* saved_fcp, int pitch_p,
@@ -452,6 +454,9 @@ public:
   {
     char dbgString[100];
 
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); }
+    catch (const AvisynthError&) { has_at_least_v8 = false; }
 
     if (!vi.IsYV12())
       env->ThrowError("Convolution3D supports YV12 color format only");
@@ -507,10 +512,12 @@ private:
 
 PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
 {
+  // c: current p: previous n: next
   PVideoFrame fc = child->GetFrame(n, env);
   PVideoFrame fp = child->GetFrame(n == 0 ? 0 : n - 1, env);
   PVideoFrame fn = child->GetFrame(n >= vi.num_frames - 1 ? vi.num_frames - 1 : n + 1, env);
-  PVideoFrame final = env->NewVideoFrame(vi);
+  PVideoFrame final = has_at_least_v8 ? env->NewVideoFrameP(vi, &fc) : env->NewVideoFrame(vi);
+
 
   if (copyLuma)
     env->BitBlt(final->GetWritePtr(PLANAR_Y), final->GetPitch(PLANAR_Y),
