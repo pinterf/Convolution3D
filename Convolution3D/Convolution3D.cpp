@@ -458,8 +458,8 @@ public:
     try { env->CheckVersion(8); }
     catch (const AvisynthError&) { has_at_least_v8 = false; }
 
-    if (!vi.IsYV12())
-      env->ThrowError("Convolution3D supports YV12 color format only");
+    if (!vi.IsYV12() && !vi.IsYV16() && !vi.IsYV411() && !vi.IsYV24())
+      env->ThrowError("Convolution3D supports YV12, YV411, YV16 or YV24 color format only");
 
     if (!(env->GetCPUFlags() & CPUF_SSE2))
       env->ThrowError("Convolution3D needs a SSE2 capable CPU");
