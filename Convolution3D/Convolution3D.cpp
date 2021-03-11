@@ -421,7 +421,7 @@ class Convolution3D : public GenericVideoFilter
 {
   int debug;
 
-  void (*funcPtr_new) (const unsigned char* saved_fcp, int pitch_p,
+  void (*funcPtr) (const unsigned char* saved_fcp, int pitch_p,
     const unsigned char* saved_fcc, int pitch_c,
     const unsigned char* saved_fcn, int pitch_n,
     unsigned char* dest, int pitch_d,
@@ -430,11 +430,11 @@ class Convolution3D : public GenericVideoFilter
     int thresh_mask);
 
   bool copyLuma, copyChroma;
-  short luma_Treshold, chroma_Treshold;
-  short temporal_luma_Treshold, temporal_chroma_Treshold;
+  int luma_Treshold, chroma_Treshold;
+  int temporal_luma_Treshold, temporal_chroma_Treshold;
   double temporal_influence;
-  short luma_limit;
-  short matrix;
+  int luma_limit;
+  int matrix;
 
 public:
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
@@ -475,16 +475,16 @@ public:
     switch (matrix)
     {
     case STANDARD_MATRIX:
-      funcPtr_new = process<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>;
+      funcPtr = process<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>;
       break;
     case SIMPLE_MATRIX:
-      funcPtr_new = process<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>;
+      funcPtr = process<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>;
       break;
     case STANDARD_FAST_MATRIX:
-      funcPtr_new = process<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>;
+      funcPtr = process<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>;
       break;
     case SIMPLE_FAST_MATRIX:
-      funcPtr_new = process<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>;
+      funcPtr = process<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>;
       break;
     }
 
@@ -517,7 +517,7 @@ PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
       fc->GetReadPtr(PLANAR_Y), fc->GetPitch(PLANAR_Y),
       fc->GetRowSize(PLANAR_Y), fc->GetHeight(PLANAR_Y));
   else
-    funcPtr_new(fp->GetReadPtr(PLANAR_Y), fp->GetPitch(PLANAR_Y),
+    funcPtr(fp->GetReadPtr(PLANAR_Y), fp->GetPitch(PLANAR_Y),
       fc->GetReadPtr(PLANAR_Y), fc->GetPitch(PLANAR_Y),
       fn->GetReadPtr(PLANAR_Y), fn->GetPitch(PLANAR_Y),
       final->GetWritePtr(PLANAR_Y), final->GetPitch(PLANAR_Y),
@@ -536,7 +536,7 @@ PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
   }
   else
   {
-    funcPtr_new(fp->GetReadPtr(PLANAR_U), fp->GetPitch(PLANAR_U),
+    funcPtr(fp->GetReadPtr(PLANAR_U), fp->GetPitch(PLANAR_U),
       fc->GetReadPtr(PLANAR_U), fc->GetPitch(PLANAR_U),
       fn->GetReadPtr(PLANAR_U), fn->GetPitch(PLANAR_U),
       final->GetWritePtr(PLANAR_U), final->GetPitch(PLANAR_U),
@@ -544,7 +544,7 @@ PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
       temporal_chroma_Treshold,
       chroma_Treshold);
 
-    funcPtr_new(fp->GetReadPtr(PLANAR_V), fp->GetPitch(PLANAR_V),
+    funcPtr(fp->GetReadPtr(PLANAR_V), fp->GetPitch(PLANAR_V),
       fc->GetReadPtr(PLANAR_V), fc->GetPitch(PLANAR_V),
       fn->GetReadPtr(PLANAR_V), fn->GetPitch(PLANAR_V),
       final->GetWritePtr(PLANAR_V), final->GetPitch(PLANAR_V),
@@ -605,7 +605,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 {
   AVS_linkage = vectors;
 
-  env->AddFunction("Convolution3D", "c[matrix]i[ythresh]i[cthresh]i[t_ythresh]i[t_cthresh]i[influence]f[debug]i[smp]b[simd]b", Create_Convolution3D, 0);
-  env->AddFunction("Convolution3D", "c[preset]si[smp]b[simd]b", Create_Convolution3D_Pre, 0);
+  env->AddFunction("Convolution3D", "c[matrix]i[ythresh]i[cthresh]i[t_ythresh]i[t_cthresh]i[influence]f[debug]i", Create_Convolution3D, 0);
+  env->AddFunction("Convolution3D", "c[preset]si", Create_Convolution3D_Pre, 0);
   return "`Convolution3D' Denoiser";
 }
