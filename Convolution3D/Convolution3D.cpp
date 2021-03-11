@@ -439,6 +439,10 @@ class Convolution3D : public GenericVideoFilter
 public:
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 
+  int __stdcall SetCacheHints(int cachehints, int frame_range) override {
+    return cachehints == CACHE_GET_MTMODE ? MT_NICE_FILTER : 0;
+  }
+
   Convolution3D(PClip _child, short _matrix, short _luma_Treshold, short _chroma_Treshold,
     short _temporal_luma_Treshold, short _temporal_chroma_Treshold,
     double _temporal_influence, int _debug, IScriptEnvironment* env)
