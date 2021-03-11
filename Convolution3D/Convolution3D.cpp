@@ -32,7 +32,7 @@ GNU General Public License for more details
 // the other left-right extremes are just not correct
 
 template<bool top, bool bottom>
-void compute_fast121(
+AVS_FORCEINLINE void compute_fast121(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
@@ -101,7 +101,7 @@ void compute_fast121(
 }
 
 template<bool top, bool bottom>
-void compute_121(
+AVS_FORCEINLINE void compute_121(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
@@ -205,7 +205,7 @@ void compute_121(
 }
 
 template<bool top, bool bottom>
-void compute_fast111(
+AVS_FORCEINLINE void compute_fast111(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
@@ -275,7 +275,7 @@ void compute_fast111(
 // pl_pitch_p and pl_pitch_n is zero for top line
 // nl_pitch_p and nl_pitch_n is zero for bottom line
 template<bool top, bool bottom>
-void compute_111(
+AVS_FORCEINLINE void compute_111(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,

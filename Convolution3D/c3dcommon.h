@@ -81,7 +81,7 @@ __m128i check_lthreshold(__m128i& mm0, __m128i& full_f, __m128i& pixel_mask, __m
 // between the current pixel (mm0) and the pixel mask (the two psubusb & por)
 // Next we substract the treshold mask -> all values = 0 are good and
 // must be kept, others must be replaced by the mask
-__m128i check_bthreshold(__m128i orig, __m128i full_f, __m128i pixel_mask, __m128i mm6_thresh, __m128i mm7_zero)
+AVS_FORCEINLINE __m128i check_bthreshold(__m128i orig, __m128i full_f, __m128i pixel_mask, __m128i mm6_thresh, __m128i mm7_zero)
 {
   auto absdiff = _mm_subs_epu8(_mm_max_epu8(orig, pixel_mask), _mm_min_epu8(orig, pixel_mask)); // abs diff
   auto belowthresh = _mm_subs_epu8(absdiff, mm6_thresh);
@@ -96,7 +96,7 @@ __m128i check_bthreshold(__m128i orig, __m128i full_f, __m128i pixel_mask, __m12
 // Source is in where
 // results are in mm4 and mm5
 // input/output: mm4 and mm5
-void compute_mul_pixel(const uint8_t *where, int mul, 
+AVS_FORCEINLINE void compute_mul_pixel(const uint8_t *where, int mul,
   __m128i full_f, __m128i mm3_pixel_mask, __m128i mm6_thresh, __m128i mm7_zero, __m128i& mm4, __m128i& mm5)
 {
   auto mm0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(where)); // movq mm0, [where]
@@ -111,7 +111,7 @@ void compute_mul_pixel(const uint8_t *where, int mul,
 
 // Source is in where
 // input/output: mm4 and mm5
-void compute_pixel(const uint8_t* where,
+AVS_FORCEINLINE void compute_pixel(const uint8_t* where,
   __m128i full_f, __m128i mm3_pixel_mask, __m128i mm6_thresh, __m128i mm7_zero, __m128i& mm4, __m128i& mm5)
 {
   auto mm0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(where));
