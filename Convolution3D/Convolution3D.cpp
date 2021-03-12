@@ -19,8 +19,9 @@ GNU General Public License for more details
 
 
 */
-
-#include <windows.h>
+#ifdef _WIN32
+#include "windows.h"
+#endif
 #include <string.h>
 #include <stdio.h>
 #include "avisynth.h"
@@ -818,7 +819,9 @@ public:
     if (debug)
     {
       sprintf(dbgString, "Convolution3D for Avisynth v1.1\n");
+#ifdef _WIN32
       OutputDebugString(dbgString);
+#endif
     }
     SetCacheHints(CACHE_WINDOW, 2);
 
