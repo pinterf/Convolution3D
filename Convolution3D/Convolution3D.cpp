@@ -32,11 +32,274 @@ GNU General Public License for more details
 // the other left-right extremes are just not correct
 
 template<bool top, bool bottom>
+AVS_FORCEINLINE void compute_fast121_c(
+  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  uint8_t* edi_dest,
+  int pitch_p, int pitch_c, int pitch_n,
+  int width,
+  int thresh, int temp_thresh
+)
+{
+  edi_dest[0] = esi_fcc[0];
+  for (int x = 1; x < width-1; x++) {
+
+    int src = esi_fcc[x];
+
+    // current line: weight 2-4-2
+    auto result = (src << 2);
+    compute_mul_pixel_c(esi_fcc[x - 1], 1, src, thresh, result);
+    compute_mul_pixel_c(esi_fcc[x + 1], 1, src, thresh, result);
+
+    // prev line: weight 1-2-1
+    auto prevline_esi_fcc = esi_fcc;
+    if constexpr (!top)
+      prevline_esi_fcc -= pitch_c;
+    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(prevline_esi_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+
+    // next line: weight 1-2-1
+    auto nextline_esi_fcc = esi_fcc;
+    if constexpr (!bottom)
+      nextline_esi_fcc += pitch_c;
+    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(nextline_esi_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+
+    // actual result *= 2
+    result <<= 1;
+
+    // weight 16
+    compute_mul_pixel_c(eax_fcp[x], 4, src, temp_thresh, result);
+    compute_mul_pixel_c(ebx_fcn[x], 4, src, temp_thresh, result);
+
+    result = (result + 32) >> 6;
+    edi_dest[x] = result;
+  }
+  edi_dest[width-1] = esi_fcc[width - 1];
+}
+
+template<bool top, bool bottom>
+AVS_FORCEINLINE void compute_121_c(
+  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  uint8_t* edi_dest,
+  int pitch_p, int pitch_c, int pitch_n,
+  int width,
+  int thresh, int temp_thresh
+)
+{
+  edi_dest[0] = esi_fcc[0];
+  for (int x = 1; x < width-1; x++) {
+
+    int src = esi_fcc[x];
+
+    // current line: weight 2-4-2
+    int result = (src << 2);
+    compute_mul_pixel_c(esi_fcc[x - 1], 1, src, thresh, result);
+    compute_mul_pixel_c(esi_fcc[x + 1], 1, src, thresh, result);
+
+    // prev line: weight 1-2-1
+    auto prevline_esi_fcc = esi_fcc;
+    if constexpr (!top)
+      prevline_esi_fcc -= pitch_c;
+    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(prevline_esi_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+
+    // next line: weight 1-2-1
+    auto nextline_esi_fcc = esi_fcc;
+    if constexpr (!bottom)
+      nextline_esi_fcc += pitch_c;
+    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(nextline_esi_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+
+    // actual result *= 2
+    result <<= 1;
+
+    // temporal difference from 'fast': center*16 -> 1-2-1 prev, 2-4-2 current 1-2-1 next
+    // previous
+    compute_mul_pixel_c(eax_fcp[x - 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(eax_fcp[x], 2, src, temp_thresh, result);
+    compute_mul_pixel_c(eax_fcp[x + 1], 1, src, temp_thresh, result);
+    // prev line: weight 1-2-1
+    auto prevline_eax_fcp = eax_fcp;
+    if constexpr (!top)
+      prevline_eax_fcp -= pitch_p;
+    compute_pixel_c(prevline_eax_fcp[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(prevline_eax_fcp[x], 1, src, temp_thresh, result);
+    compute_pixel_c(prevline_eax_fcp[x + 1], src, temp_thresh, result);
+    // next line: weight 1-2-1
+    auto nextline_eax_fcp = eax_fcp;
+    if constexpr (!bottom)
+      nextline_eax_fcp += pitch_p;
+    compute_pixel_c(nextline_eax_fcp[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(nextline_eax_fcp[x], 1, src, temp_thresh, result);
+    compute_pixel_c(nextline_eax_fcp[x + 1], src, temp_thresh, result);
+
+    // next
+    compute_mul_pixel_c(ebx_fcn[x - 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(ebx_fcn[x], 2, src, temp_thresh, result);
+    compute_mul_pixel_c(ebx_fcn[x + 1], 1, src, temp_thresh, result);
+    // prev line: weight 1-2-1
+    auto prevline_ebx_fcn = ebx_fcn;
+    if constexpr (!top)
+      prevline_ebx_fcn -= pitch_p;
+    compute_pixel_c(prevline_ebx_fcn[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(prevline_ebx_fcn[x], 1, src, temp_thresh, result);
+    compute_pixel_c(prevline_ebx_fcn[x + 1], src, temp_thresh, result);
+    // next line: weight 1-2-1
+    auto nextline_ebx_fcn = ebx_fcn;
+    if constexpr (!bottom)
+      nextline_ebx_fcn += pitch_p;
+    compute_pixel_c(nextline_ebx_fcn[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(nextline_ebx_fcn[x], 1, src, temp_thresh, result);
+    compute_pixel_c(nextline_ebx_fcn[x + 1], src, temp_thresh, result);
+
+    result = (result + 32) >> 6;
+    edi_dest[x] = result;
+  }
+  edi_dest[width - 1] = esi_fcc[width - 1];
+}
+
+
+template<bool top, bool bottom>
+AVS_FORCEINLINE void compute_fast111_c(
+  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  uint8_t* edi_dest,
+  int pitch_p, int pitch_c, int pitch_n,
+  int width,
+  int thresh, int temp_thresh
+)
+{
+  edi_dest[0] = esi_fcc[0];
+  for (int x = 1; x < width-1; x++) {
+
+    int src = esi_fcc[x];
+
+    // current line: weight 1-1-1
+    int result = src;
+    compute_pixel_c(esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(esi_fcc[x + 1], src, thresh, result);
+
+    // prev line: weight 1-1-1
+    auto prevline_esi_fcc = esi_fcc;
+    if constexpr (!top)
+      prevline_esi_fcc -= pitch_c;
+    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x], src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+
+    // next line: weight 1-1-1
+    auto nextline_esi_fcc = esi_fcc;
+    if constexpr (!bottom)
+      nextline_esi_fcc += pitch_c;
+    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x], src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+
+    // weight 1
+    compute_pixel_c(eax_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(ebx_fcn[x], src, temp_thresh, result);
+
+    // 11 pixels; *2 for proper rounding 11/2 would not be nice
+    //result = ((result << 1) + 11) / 22;
+    result = (((result << 1) + 11) * (65536 / 22)) >> 16;
+    edi_dest[x] = result;
+  }
+  edi_dest[width - 1] = esi_fcc[width - 1];
+}
+
+// pl_pitch_p and pl_pitch_n is zero for top line
+// nl_pitch_p and nl_pitch_n is zero for bottom line
+template<bool top, bool bottom>
+AVS_FORCEINLINE void compute_111_c(
+  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  uint8_t* edi_dest,
+  int pitch_p, int pitch_c, int pitch_n,
+  int width,
+  int thresh, int temp_thresh
+)
+{
+  edi_dest[0] = esi_fcc[0];
+  for (int x = 1; x < width-1; x++) {
+
+    int src = esi_fcc[x];
+
+    // current line: weight 1-1-1
+    int result = src;
+    compute_pixel_c(esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(esi_fcc[x + 1], src, thresh, result);
+
+    // prev line: weight 1-1-1
+    auto prevline_esi_fcc = esi_fcc;
+    if constexpr (!top)
+      prevline_esi_fcc -= pitch_c;
+    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x], src, thresh, result);
+    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+
+    // next line: weight 1-1-1
+    auto nextline_esi_fcc = esi_fcc;
+    if constexpr (!bottom)
+      nextline_esi_fcc += pitch_c;
+    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x], src, thresh, result);
+    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+
+    // temporal difference from 'fast': center*1 -> 1-1-1 prev, 1-1-1 current 1-1-1 next
+    // previous
+    compute_pixel_c(eax_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(eax_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(eax_fcp[x + 1], src, temp_thresh, result);
+    // prev line: weight 1-2-1
+    auto prevline_eax_fcp = eax_fcp;
+    if constexpr (!top)
+      prevline_eax_fcp -= pitch_p;
+    compute_pixel_c(prevline_eax_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(prevline_eax_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(prevline_eax_fcp[x + 1], src, temp_thresh, result);
+    // next line: weight 1-2-1
+    auto nextline_eax_fcp = eax_fcp;
+    if constexpr (!bottom)
+      nextline_eax_fcp += pitch_p;
+    compute_pixel_c(nextline_eax_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(nextline_eax_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(nextline_eax_fcp[x + 1], src, temp_thresh, result);
+
+    // next
+    compute_pixel_c(ebx_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(ebx_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(ebx_fcn[x + 1], src, temp_thresh, result);
+    // prev line: weight 1-2-1
+    auto prevline_ebx_fcn = ebx_fcn;
+    if constexpr (!top)
+      prevline_ebx_fcn -= pitch_p;
+    compute_pixel_c(prevline_ebx_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(prevline_ebx_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(prevline_ebx_fcn[x + 1], src, temp_thresh, result);
+    // next line: weight 1-2-1
+    auto nextline_ebx_fcn = ebx_fcn;
+    if constexpr (!bottom)
+      nextline_ebx_fcn += pitch_p;
+    compute_pixel_c(nextline_ebx_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(nextline_ebx_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(nextline_ebx_fcn[x + 1], src, temp_thresh, result);
+
+    // 27 pixels; *2 for proper rounding 27/2 would not be nice
+    //result = ((result << 1) + 27) / 54;
+    result = (((result << 1) + 27) * (65536/54)) >> 16;
+    edi_dest[x] = result;
+  }
+  edi_dest[width - 1] = esi_fcc[width - 1];
+}
+
+template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast121(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
-  int widthdiv16,
+  int width,
   int thresh, int temp_thresh
 )
 {
@@ -44,9 +307,9 @@ AVS_FORCEINLINE void compute_fast121(
   auto full_f = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
-  for (int ecx = 0; ecx < widthdiv16; ecx++) {
+  for (int ecx = 0; ecx < width; ecx += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc)); // movq mm4, [esi]
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
 
     // current line: weight 2-4-2
     // src*4
@@ -55,7 +318,7 @@ AVS_FORCEINLINE void compute_fast121(
     mm4 = _mm_slli_epi16(mm4, 2);
     mm5 = _mm_slli_epi16(mm5, 2);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh); // movq mm6, thresh_mask
+    auto mm6_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
     compute_mul_pixel(esi_fcc - 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
     compute_mul_pixel(esi_fcc + 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
@@ -105,7 +368,7 @@ AVS_FORCEINLINE void compute_121(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
-  int widthdiv16,
+  int width,
   int thresh, int temp_thresh
 )
 {
@@ -113,9 +376,9 @@ AVS_FORCEINLINE void compute_121(
   auto full_f = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
-  for (int ecx = 0; ecx < widthdiv16; ecx++) {
+  for (int ecx = 0; ecx < width; ecx += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc)); // movq mm4, [esi]
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
 
     // current line: weight 2-4-2
     // src*4
@@ -124,7 +387,7 @@ AVS_FORCEINLINE void compute_121(
     mm4 = _mm_slli_epi16(mm4, 2);
     mm5 = _mm_slli_epi16(mm5, 2);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh); // movq mm6, thresh_mask
+    auto mm6_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
     compute_mul_pixel(esi_fcc - 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
     compute_mul_pixel(esi_fcc + 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
@@ -209,7 +472,7 @@ AVS_FORCEINLINE void compute_fast111(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
-  int widthdiv16,
+  int width,
   int thresh, int temp_thresh
 )
 {
@@ -218,7 +481,7 @@ AVS_FORCEINLINE void compute_fast111(
   auto round_11 = _mm_set1_epi16(11);
   auto multi_11 = _mm_set1_epi16((65536 / 2) / 11);
 
-  for (int ecx = 0; ecx < widthdiv16; ecx++) {
+  for (int ecx = 0; ecx < width; ecx += 16) {
 
     auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
 
@@ -279,7 +542,7 @@ AVS_FORCEINLINE void compute_111(
   const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
-  int widthdiv16,
+  int width,
   int thresh, int temp_thresh
 )
 {
@@ -288,7 +551,7 @@ AVS_FORCEINLINE void compute_111(
   auto round_27 = _mm_set1_epi16(27);
   auto multi_27 = _mm_set1_epi16((65536 / 2) / 27);
 
-  for (int ecx = 0; ecx < widthdiv16; ecx++) {
+  for (int ecx = 0; ecx < width; ecx += 16) {
 
     auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
 
@@ -381,7 +644,7 @@ AVS_FORCEINLINE void compute_111(
 using proc_fn_t = decltype(compute_111<false, false>);
 
 template<proc_fn_t processor_function_top, proc_fn_t processor_function, proc_fn_t processor_function_bottom>
-void process(
+void process_c(
   const unsigned char* p_fcp, int pitch_p,
   const unsigned char* p_fcc, int pitch_c,
   const unsigned char* p_fcn, int pitch_n,
@@ -390,32 +653,76 @@ void process(
   int temp_thresh_mask,
   int thresh_mask)
 {
-
-  int w16;
-  w16 = (width >> 4);
-
   // top
-  processor_function_top(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, w16, thresh_mask, temp_thresh_mask);
+  processor_function_top(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, width, thresh_mask, temp_thresh_mask);
   p_fcp += pitch_p;
   p_fcc += pitch_c;
   p_fcn += pitch_n;
   p_dest += pitch_d;
   for (int y = 1; y < height - 1; y++) {
-    processor_function(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, w16, thresh_mask, temp_thresh_mask);
+    processor_function(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, width, thresh_mask, temp_thresh_mask);
     p_fcp += pitch_p;
     p_fcc += pitch_c;
     p_fcn += pitch_n;
     p_dest += pitch_d;
   }
-  processor_function_bottom(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, w16, thresh_mask, temp_thresh_mask);
+  processor_function_bottom(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, width, thresh_mask, temp_thresh_mask);
+}
+
+template<proc_fn_t processor_function_top, proc_fn_t processor_function, proc_fn_t processor_function_bottom>
+void process_simd(
+  const unsigned char* p_fcp, int pitch_p,
+  const unsigned char* p_fcc, int pitch_c,
+  const unsigned char* p_fcn, int pitch_n,
+  unsigned char* p_dest, int pitch_d,
+  int width, int height,
+  int temp_thresh_mask,
+  int thresh_mask)
+{
+  // top
+  const int effective_width = width - 32;
+  const int offset = width - 16 - 1;
+
+  p_dest[0] = p_fcc[0];
+  processor_function_top(p_fcp + 1, p_fcc + 1, p_fcn + 1, p_dest + 1, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask); // leftmost but one 16 pixels, overlaps 1 pixel with safe middle area
+  processor_function_top(p_fcp + 16, p_fcc + 16, p_fcn + 16, p_dest + 16, pitch_p, pitch_c, pitch_n, width - 2 * 16, thresh_mask, temp_thresh_mask); // middle safe
+  processor_function_top(p_fcp + offset, p_fcc + offset, p_fcn + offset, p_dest + offset, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask); // last but one 16 pixels
+  p_dest[width - 1] = p_fcc[width - 1]; // last pixel
+
+  p_fcp += pitch_p;
+  p_fcc += pitch_c;
+  p_fcn += pitch_n;
+  p_dest += pitch_d;
+  for (int y = 1; y < height - 1; y++) {
+    p_dest[0] = p_fcc[0];
+    processor_function(p_fcp + 1, p_fcc + 1, p_fcn + 1, p_dest + 1, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask);
+    processor_function(p_fcp + 16, p_fcc + 16, p_fcn + 16, p_dest + 16, pitch_p, pitch_c, pitch_n, width - 2 * 16, thresh_mask, temp_thresh_mask);
+    processor_function(p_fcp + offset, p_fcc + offset, p_fcn + offset, p_dest + offset, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask);
+    p_dest[width - 1] = p_fcc[width - 1];
+    p_fcp += pitch_p;
+    p_fcc += pitch_c;
+    p_fcn += pitch_n;
+    p_dest += pitch_d;
+  }
+  p_dest[0] = p_fcc[0];
+  processor_function_bottom(p_fcp + 1, p_fcc + 1, p_fcn + 1, p_dest + 1, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask);
+  processor_function_bottom(p_fcp + 16, p_fcc + 16, p_fcn + 16, p_dest + 16, pitch_p, pitch_c, pitch_n, width - 2 * 16, thresh_mask, temp_thresh_mask);
+  processor_function_bottom(p_fcp + offset, p_fcc + offset, p_fcn + offset, p_dest + offset, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask);
+  p_dest[width - 1] = p_fcc[width - 1];
 }
 
 // instantiate
-template void process<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
-template void process<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
-template void process<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
-template void process<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_simd<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_simd<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_simd<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_simd<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
 
+template void process_c<compute_111_c<true, false>, compute_111_c<false, false>, compute_111_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_c<compute_fast111_c<true, false>, compute_fast111_c<false, false>, compute_fast111_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_c<compute_121_c<true, false>, compute_121_c<false, false>, compute_121_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+template void process_c<compute_fast121_c<true, false>, compute_fast121_c<false, false>, compute_fast121_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+
+using frameproc_fn_t = decltype(process_c<compute_fast121_c<true, false>, compute_fast121_c<false, false>, compute_fast121_c<false, true>>);
 
 class Convolution3D : public GenericVideoFilter
 {
@@ -423,13 +730,11 @@ class Convolution3D : public GenericVideoFilter
 
   int debug;
 
-  void (*funcPtr) (const unsigned char* saved_fcp, int pitch_p,
-    const unsigned char* saved_fcc, int pitch_c,
-    const unsigned char* saved_fcn, int pitch_n,
-    unsigned char* dest, int pitch_d,
-    int width, int height,
-    int temp_thresh_mask,
-    int thresh_mask);
+  frameproc_fn_t *funcPtr_simd;
+  frameproc_fn_t* funcPtr_c;
+
+  frameproc_fn_t* funcPtr_luma;
+  frameproc_fn_t* funcPtr_chroma;
 
   bool copyLuma, copyChroma;
   int luma_Treshold, chroma_Treshold;
@@ -437,6 +742,7 @@ class Convolution3D : public GenericVideoFilter
   double temporal_influence;
   int luma_limit;
   int matrix;
+  int opt;
 
 public:
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
@@ -447,10 +753,10 @@ public:
 
   Convolution3D(PClip _child, short _matrix, short _luma_Treshold, short _chroma_Treshold,
     short _temporal_luma_Treshold, short _temporal_chroma_Treshold,
-    double _temporal_influence, int _debug, IScriptEnvironment* env)
+    double _temporal_influence, int _debug, int _opt, IScriptEnvironment* env)
     : GenericVideoFilter(_child), matrix(_matrix), luma_Treshold(_luma_Treshold), chroma_Treshold(_chroma_Treshold),
     temporal_luma_Treshold(_temporal_luma_Treshold), temporal_chroma_Treshold(_temporal_chroma_Treshold),
-    temporal_influence(_temporal_influence), debug(_debug)
+    temporal_influence(_temporal_influence), debug(_debug), opt(_opt)
   {
     char dbgString[100];
 
@@ -480,17 +786,36 @@ public:
     switch (matrix)
     {
     case STANDARD_MATRIX:
-      funcPtr = process<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>;
+      funcPtr_simd = &process_simd<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>;
+      funcPtr_c = &process_c<compute_121_c<true, false>, compute_121_c<false, false>, compute_121_c<false, true>>;
       break;
     case SIMPLE_MATRIX:
-      funcPtr = process<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>;
+      funcPtr_simd = &process_simd<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>;
+      funcPtr_c = &process_c<compute_111_c<true, false>, compute_111_c<false, false>, compute_111_c<false, true>>;
       break;
     case STANDARD_FAST_MATRIX:
-      funcPtr = process<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>;
+      funcPtr_simd = &process_simd<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>;
+      funcPtr_c = &process_c<compute_fast121_c<true, false>, compute_fast121_c<false, false>, compute_fast121_c<false, true>>;
       break;
     case SIMPLE_FAST_MATRIX:
-      funcPtr = process<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>;
+      funcPtr_simd = &process_simd<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>;
+      funcPtr_c = &process_c<compute_fast111_c<true, false>, compute_fast111_c<false, false>, compute_fast111_c<false, true>>;
       break;
+    }
+
+    bool use_SSE2 = (env->GetCPUFlags() & CPUF_SSE2) == CPUF_SSE2;
+    if (opt == 0) use_SSE2 = false;
+
+    funcPtr_luma = funcPtr_c;
+    funcPtr_chroma = vi.IsY() ? nullptr : funcPtr_c;
+
+    if (use_SSE2) {
+      if (vi.width >= 16 + 2)
+        funcPtr_luma = funcPtr_simd;
+      if (!vi.IsY() && vi.IsYUV()) {
+        if ((vi.width >> vi.GetPlaneWidthSubsampling(PLANAR_U)) >= 16 + 2)
+          funcPtr_chroma = funcPtr_simd;
+      }
     }
 
     copyChroma = (chroma_Treshold == 0) && (temporal_chroma_Treshold == 0);
@@ -524,11 +849,11 @@ PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
       fc->GetReadPtr(PLANAR_Y), fc->GetPitch(PLANAR_Y),
       fc->GetRowSize(PLANAR_Y), fc->GetHeight(PLANAR_Y));
   else
-    funcPtr(fp->GetReadPtr(PLANAR_Y), fp->GetPitch(PLANAR_Y),
+    funcPtr_luma(fp->GetReadPtr(PLANAR_Y), fp->GetPitch(PLANAR_Y),
       fc->GetReadPtr(PLANAR_Y), fc->GetPitch(PLANAR_Y),
       fn->GetReadPtr(PLANAR_Y), fn->GetPitch(PLANAR_Y),
       final->GetWritePtr(PLANAR_Y), final->GetPitch(PLANAR_Y),
-      fc->GetRowSize(PLANAR_Y_ALIGNED), fc->GetHeight(PLANAR_Y),
+      vi.width, fc->GetHeight(PLANAR_Y),
       temporal_luma_Treshold,
       luma_Treshold);
 
@@ -541,21 +866,22 @@ PVideoFrame __stdcall Convolution3D::GetFrame(int n, IScriptEnvironment* env)
       fc->GetReadPtr(PLANAR_V), fc->GetPitch(PLANAR_V),
       fc->GetRowSize(PLANAR_V), fc->GetHeight(PLANAR_V));
   }
-  else
+  else if(funcPtr_chroma != nullptr)
   {
-    funcPtr(fp->GetReadPtr(PLANAR_U), fp->GetPitch(PLANAR_U),
+    const int cwidth = vi.width >> vi.GetPlaneWidthSubsampling(PLANAR_U);
+    funcPtr_chroma(fp->GetReadPtr(PLANAR_U), fp->GetPitch(PLANAR_U),
       fc->GetReadPtr(PLANAR_U), fc->GetPitch(PLANAR_U),
       fn->GetReadPtr(PLANAR_U), fn->GetPitch(PLANAR_U),
       final->GetWritePtr(PLANAR_U), final->GetPitch(PLANAR_U),
-      fc->GetRowSize(PLANAR_U_ALIGNED), fc->GetHeight(PLANAR_U),
+      cwidth, fc->GetHeight(PLANAR_U),
       temporal_chroma_Treshold,
       chroma_Treshold);
 
-    funcPtr(fp->GetReadPtr(PLANAR_V), fp->GetPitch(PLANAR_V),
+    funcPtr_chroma(fp->GetReadPtr(PLANAR_V), fp->GetPitch(PLANAR_V),
       fc->GetReadPtr(PLANAR_V), fc->GetPitch(PLANAR_V),
       fn->GetReadPtr(PLANAR_V), fn->GetPitch(PLANAR_V),
       final->GetWritePtr(PLANAR_V), final->GetPitch(PLANAR_V),
-      fc->GetRowSize(PLANAR_V_ALIGNED), fc->GetHeight(PLANAR_V),
+      cwidth, fc->GetHeight(PLANAR_V),
       temporal_chroma_Treshold,
       chroma_Treshold);
   }
@@ -569,6 +895,7 @@ AVSValue __cdecl Create_Convolution3D(AVSValue args, void* user_data, IScriptEnv
     args[4].AsInt(3), args[5].AsInt(4),  // Temporal treshold
     args[6].AsFloat(3),
     args[7].AsInt(0), // debug
+    args[8].AsInt(-1), // opt
     env);
 }
 
@@ -576,33 +903,33 @@ AVSValue __cdecl Create_Convolution3D_Pre(AVSValue args, void* user_data, IScrip
   const char* myString = args[1].AsString("");
   if (!_stricmp(myString, "movieHQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 0, 3, 4, 3, 4, 2.8, 0, env);
+    return new Convolution3D(args[0].AsClip(), 0, 3, 4, 3, 4, 2.8, 0, -1, env);
   }
   else if (!_stricmp(myString, "movieLQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 0, 6, 10, 6, 8, 2.8, 0, env);
+    return new Convolution3D(args[0].AsClip(), 0, 6, 10, 6, 8, 2.8, 0, -1, env);
   }
   else if (!_stricmp(myString, "animeHQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 0, 6, 12, 6, 8, 2.8, 0, env);
+    return new Convolution3D(args[0].AsClip(), 0, 6, 12, 6, 8, 2.8, 0, -1, env);
   }
   else if (!_stricmp(myString, "animeLQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 1, 8, 16, 8, 8, 2.8, 0, env);
+    return new Convolution3D(args[0].AsClip(), 1, 8, 16, 8, 8, 2.8, 0, -1, env);
   }
   else if (!_stricmp(myString, "animeBQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 1, 12, 22, 8, 8, 2.8, 0, env);
+    return new Convolution3D(args[0].AsClip(), 1, 12, 22, 8, 8, 2.8, 0, -1, env);
   }
   else if (!_stricmp(myString, "vhsBQ"))
   {
-    return new Convolution3D(args[0].AsClip(), 0, 16, 48, 10, 32, 4, 0, env);
+    return new Convolution3D(args[0].AsClip(), 0, 16, 48, 10, 32, 4, 0, -1, env);
   }
   else
   {
     env->ThrowError("Correct preset values are : movie[HQ, LQ], anime[HQ, LQ, BQ] or vhs[BQ]");
   }
-  return new Convolution3D(args[0].AsClip(), 1, 6, 12, 6, 8, 2.8, 0, env);
+  return new Convolution3D(args[0].AsClip(), 1, 6, 12, 6, 8, 2.8, 0, -1, env);
 }
 
 
@@ -612,7 +939,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 {
   AVS_linkage = vectors;
 
-  env->AddFunction("Convolution3D", "c[matrix]i[ythresh]i[cthresh]i[t_ythresh]i[t_cthresh]i[influence]f[debug]i", Create_Convolution3D, 0);
+  env->AddFunction("Convolution3D", "c[matrix]i[ythresh]i[cthresh]i[t_ythresh]i[t_cthresh]i[influence]f[debug]i[opt]i", Create_Convolution3D, 0);
   env->AddFunction("Convolution3D", "c[preset]si", Create_Convolution3D_Pre, 0);
   return "`Convolution3D' Denoiser";
 }
