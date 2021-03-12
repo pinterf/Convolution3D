@@ -32,7 +32,10 @@ GNU General Public License for more details
 #define MIN_TEMPORAL_INFLUENCE -1
 #define MAX_TEMPORAL_INFLUENCE 100
 
+#ifdef INTEL_INTRINSICS
 #include <emmintrin.h>
+#endif
+
 #include <algorithm>
 
 int check_bthreshold_c(int orig, int pixel_mask, int thresh)
@@ -43,6 +46,19 @@ int check_bthreshold_c(int orig, int pixel_mask, int thresh)
   return pixel_mask;
 }
 
+AVS_FORCEINLINE void compute_mul_pixel_c(int orig, int mul, int pixel_mask, int thresh, int& result)
+{
+  auto res = check_bthreshold_c(orig, pixel_mask, thresh);
+  result += res << mul;
+}
+
+AVS_FORCEINLINE void compute_pixel_c(int orig, int center, int thresh, int& result)
+{
+  auto res = check_bthreshold_c(orig, center, thresh);
+  result += res;
+}
+
+#ifdef INTEL_INTRINSICS
 // check treshold on byte
 // What it does is compute an absolute difference 
 // between the current pixel and the pixel mask
@@ -59,13 +75,7 @@ AVS_FORCEINLINE __m128i check_bthreshold(__m128i orig, __m128i full_ff, __m128i 
   return _mm_or_si128(mm0, mm1);
 }
 
-AVS_FORCEINLINE void compute_mul_pixel_c(int orig, int mul, int pixel_mask, int thresh, int& result)
-{
-  auto res = check_bthreshold_c(orig, pixel_mask, thresh);
-  result += res << mul;
-}
-
-AVS_FORCEINLINE void compute_mul_pixel(const uint8_t *where, int mul,
+AVS_FORCEINLINE void compute_mul_pixel(const uint8_t* where, int mul,
   __m128i full_ff, __m128i center, __m128i thresh, __m128i zero, __m128i& result_lo, __m128i& result_hi)
 {
   auto mm0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(where));
@@ -76,12 +86,6 @@ AVS_FORCEINLINE void compute_mul_pixel(const uint8_t *where, int mul,
   mm2 = _mm_slli_epi16(mm2, mul);
   result_lo = _mm_add_epi16(result_lo, mm1);
   result_hi = _mm_add_epi16(result_hi, mm2);
-}
-
-AVS_FORCEINLINE void compute_pixel_c(int orig, int center, int thresh, int& result)
-{
-  auto res = check_bthreshold_c(orig, center, thresh);
-  result += res;
 }
 
 // same as compute_mul_pixel but no shift inside
@@ -95,3 +99,5 @@ AVS_FORCEINLINE void compute_pixel(const uint8_t* where,
   result_lo = _mm_add_epi16(result_lo, mm1);
   result_hi = _mm_add_epi16(result_hi, mm2);
 }
+#endif // INTEL
+

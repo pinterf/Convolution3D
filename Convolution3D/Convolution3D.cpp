@@ -19,6 +19,11 @@ GNU General Public License for more details
 
 
 */
+
+#if defined(_WIN32) && !defined(INTEL_INTRINSICS)
+#error Forgot to set INTEL_INTRINSICS? Comment out this line if not
+#endif
+
 #ifdef _WIN32
 #include "windows.h"
 #endif
@@ -27,7 +32,9 @@ GNU General Public License for more details
 #include "avisynth.h"
 #include "c3dcommon.h"  // common define
 
+#ifdef INTEL_INTRINSICS
 #include <emmintrin.h>
+#endif
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast121_c(
@@ -290,6 +297,7 @@ AVS_FORCEINLINE void compute_111_c(
   edi_dest[width - 1] = p_fcc[width - 1];
 }
 
+#ifdef INTEL_INTRINSICS
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast121(
   const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
@@ -636,8 +644,9 @@ AVS_FORCEINLINE void compute_111(
     edi_dest += 16;
   }
 }
+#endif // #ifdef INTEL_INTRINSICS
 
-using proc_fn_t = decltype(compute_111<false, false>);
+using proc_fn_t = decltype(compute_111_c<false, false>);
 
 template<proc_fn_t processor_function_top, proc_fn_t processor_function, proc_fn_t processor_function_bottom>
 void process_c(
@@ -665,6 +674,7 @@ void process_c(
   processor_function_bottom(p_fcp, p_fcc, p_fcn, p_dest, pitch_p, pitch_c, pitch_n, width, thresh_mask, temp_thresh_mask);
 }
 
+#ifdef INTEL_INTRINSICS
 template<proc_fn_t processor_function_top, proc_fn_t processor_function, proc_fn_t processor_function_bottom>
 void process_simd(
   const unsigned char* p_fcp, int pitch_p,
@@ -705,12 +715,15 @@ void process_simd(
   processor_function_bottom(p_fcp + offset, p_fcc + offset, p_fcn + offset, p_dest + offset, pitch_p, pitch_c, pitch_n, 16, thresh_mask, temp_thresh_mask);
   p_dest[width - 1] = p_fcc[width - 1];
 }
+#endif
 
+#ifdef INTEL_INTRINSICS
 // instantiate
 template void process_simd<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
 template void process_simd<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
 template void process_simd<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
 template void process_simd<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
+#endif
 
 template void process_c<compute_111_c<true, false>, compute_111_c<false, false>, compute_111_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
 template void process_c<compute_fast111_c<true, false>, compute_fast111_c<false, false>, compute_fast111_c<false, true>>(const unsigned char* p_fcp, int pitch_p, const unsigned char* p_fcc, int pitch_c, const unsigned char* p_fcn, int pitch_n, unsigned char* p_dest, int pitch_d, int width, int height, int temp_thresh_mask, int thresh_mask);
@@ -762,8 +775,10 @@ public:
     if (!vi.IsY8() && !vi.IsYV12() && !vi.IsYV16() && !vi.IsYV411() && !vi.IsYV24())
       env->ThrowError("Convolution3D supports Y8, YV12, YV411, YV16 or YV24 color format only");
 
+#ifdef INTEL_INTRINSICS
     if (!(env->GetCPUFlags() & CPUF_SSE2))
       env->ThrowError("Convolution3D needs a SSE2 capable CPU");
+#endif
 
     if (matrix < 0 || matrix > 3)
       env->ThrowError("Convolution3D : matrix parameter must be 0, 1, 2 or 3");
@@ -781,28 +796,38 @@ public:
     switch (matrix)
     {
     case STANDARD_MATRIX:
+#ifdef INTEL_INTRINSICS
       funcPtr_simd = &process_simd<compute_121<true, false>, compute_121<false, false>, compute_121<false, true>>;
+#endif
       funcPtr_c = &process_c<compute_121_c<true, false>, compute_121_c<false, false>, compute_121_c<false, true>>;
       break;
     case SIMPLE_MATRIX:
+#ifdef INTEL_INTRINSICS
       funcPtr_simd = &process_simd<compute_111<true, false>, compute_111<false, false>, compute_111<false, true>>;
+#endif
       funcPtr_c = &process_c<compute_111_c<true, false>, compute_111_c<false, false>, compute_111_c<false, true>>;
       break;
     case STANDARD_FAST_MATRIX:
+#ifdef INTEL_INTRINSICS
       funcPtr_simd = &process_simd<compute_fast121<true, false>, compute_fast121<false, false>, compute_fast121<false, true>>;
+#endif
       funcPtr_c = &process_c<compute_fast121_c<true, false>, compute_fast121_c<false, false>, compute_fast121_c<false, true>>;
       break;
     case SIMPLE_FAST_MATRIX:
+#ifdef INTEL_INTRINSICS
       funcPtr_simd = &process_simd<compute_fast111<true, false>, compute_fast111<false, false>, compute_fast111<false, true>>;
+#endif
       funcPtr_c = &process_c<compute_fast111_c<true, false>, compute_fast111_c<false, false>, compute_fast111_c<false, true>>;
       break;
     }
 
-    bool use_SSE2 = (env->GetCPUFlags() & CPUF_SSE2) == CPUF_SSE2;
-    if (opt == 0) use_SSE2 = false;
-
     funcPtr_luma = funcPtr_c;
     funcPtr_chroma = vi.IsY() ? nullptr : funcPtr_c;
+
+
+#ifdef INTEL_INTRINSICS
+    bool use_SSE2 = (env->GetCPUFlags() & CPUF_SSE2) == CPUF_SSE2;
+    if (opt == 0) use_SSE2 = false;
 
     if (use_SSE2) {
       if (vi.width >= 16 + 2)
@@ -812,6 +837,7 @@ public:
           funcPtr_chroma = funcPtr_simd;
       }
     }
+#endif
 
     copyChroma = (chroma_Treshold == 0) && (temporal_chroma_Treshold == 0);
     copyLuma = (luma_Treshold == 0) && (temporal_luma_Treshold == 0);
