@@ -35,45 +35,6 @@ GNU General Public License for more details
 #include <emmintrin.h>
 #include <algorithm>
 
-#if 0
-  // Check treshold on word
-  // The value to compute must be in mm0 and the result will be in mm1
-  // mm7 = upper limit
-  // mm6 = lower limit
-  // pixel_mask = default value
-__m128i check_threshold(__m128i orig, __m128i& full_f, __m128i& pixel_mask, __m128i &mm6, __m128i& mm7)
-{
-  auto mm2 = orig;
-  auto mm0 = _mm_max_epi16(orig, mm6);
-  mm0 = _mm_min_epi16(mm0, mm7);
-  mm0 = _mm_cmpeq_epi16(mm0, mm2);
-  auto mm1 = mm0;
-  mm0 = _mm_andnot_si128(mm0, pixel_mask);
-  mm1 = _mm_and_si128(mm1, mm2);
-  mm1 = _mm_or_si128(mm1, mm0);
-  return mm1;
-}
-
-// Check treshold on word
-// FIXME PF: seems it's not word but byte! never mind, not used.
-// The value to compute must be in mm0 and the result will be in mm1
-// mm7 = upper limit
-// mm6 = lower limit
-// pixel_mask = default value
-__m128i check_lthreshold(__m128i& mm0, __m128i& full_f, __m128i& pixel_mask, __m128i& mm6, __m128i& mm7)
-{
-  auto mm2 = mm0;
-  mm0 = _mm_max_epu8(mm0, mm6);
-  mm0 = _mm_min_epu8(mm0, mm7);
-  mm0 = _mm_cmpeq_epi8(mm0, mm2);
-  auto mm1 = mm0;
-  mm0 = _mm_andnot_si128(mm0, pixel_mask);
-  mm1 = _mm_and_si128(mm1, mm2);
-  mm1 = _mm_or_si128(mm1, mm0);
-  return mm1;
-}
-#endif
-
 int check_bthreshold_c(int orig, int pixel_mask, int thresh)
 {
   auto absdiff = std::abs(orig - pixel_mask);
@@ -83,18 +44,15 @@ int check_bthreshold_c(int orig, int pixel_mask, int thresh)
 }
 
 // check treshold on byte
-// 0 in mm7
-// Treshold in mm6
-// result in mm1
 // What it does is compute an absolute difference 
-// between the current pixel (mm0) and the pixel mask (the two psubusb & por)
-// Next we substract the treshold mask -> all values = 0 are good and
+// between the current pixel and the pixel mask
+// Next we substract the treshold -> all values = 0 are good and
 // must be kept, others must be replaced by the mask
-AVS_FORCEINLINE __m128i check_bthreshold(__m128i orig, __m128i full_f, __m128i pixel_mask, __m128i mm6_thresh, __m128i mm7_zero)
+AVS_FORCEINLINE __m128i check_bthreshold(__m128i orig, __m128i full_ff, __m128i pixel_mask, __m128i thresh, __m128i zero)
 {
   auto absdiff = _mm_subs_epu8(_mm_max_epu8(orig, pixel_mask), _mm_min_epu8(orig, pixel_mask)); // abs diff
-  auto belowthresh = _mm_subs_epu8(absdiff, mm6_thresh);
-  auto comp_res = _mm_cmpeq_epi8(belowthresh, mm7_zero); // FF where absdiff <= thresh
+  auto belowthresh = _mm_subs_epu8(absdiff, thresh);
+  auto comp_res = _mm_cmpeq_epi8(belowthresh, zero); // FF where absdiff <= thresh
   // blend
   auto mm1 = _mm_andnot_si128(comp_res, pixel_mask); // pixel_mask where comp_res false (00)
   auto mm0 = _mm_and_si128(comp_res, orig); // orig where comp_res is true (FF)
@@ -107,38 +65,33 @@ AVS_FORCEINLINE void compute_mul_pixel_c(int orig, int mul, int pixel_mask, int 
   result += res << mul;
 }
 
-// Source is in where
-// results are in mm4 and mm5
-// input/output: mm4 and mm5
 AVS_FORCEINLINE void compute_mul_pixel(const uint8_t *where, int mul,
-  __m128i full_f, __m128i mm3_pixel_mask, __m128i mm6_thresh, __m128i mm7_zero, __m128i& mm4, __m128i& mm5)
+  __m128i full_ff, __m128i center, __m128i thresh, __m128i zero, __m128i& result_lo, __m128i& result_hi)
 {
   auto mm0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(where));
-  auto res = check_bthreshold(mm0, full_f, mm3_pixel_mask, mm6_thresh, mm7_zero);
-  auto mm1 = _mm_unpacklo_epi8(res, mm7_zero);
-  auto mm2 = _mm_unpackhi_epi8(res, mm7_zero);
+  auto res = check_bthreshold(mm0, full_ff, center, thresh, zero);
+  auto mm1 = _mm_unpacklo_epi8(res, zero);
+  auto mm2 = _mm_unpackhi_epi8(res, zero);
   mm1 = _mm_slli_epi16(mm1, mul);
   mm2 = _mm_slli_epi16(mm2, mul);
-  mm4 = _mm_add_epi16(mm4, mm1);
-  mm5 = _mm_add_epi16(mm5, mm2);
+  result_lo = _mm_add_epi16(result_lo, mm1);
+  result_hi = _mm_add_epi16(result_hi, mm2);
 }
 
-AVS_FORCEINLINE void compute_pixel_c(int orig, int pixel_mask, int thresh, int& result)
+AVS_FORCEINLINE void compute_pixel_c(int orig, int center, int thresh, int& result)
 {
-  auto res = check_bthreshold_c(orig, pixel_mask, thresh);
+  auto res = check_bthreshold_c(orig, center, thresh);
   result += res;
 }
 
-
-// Source is in where
-// input/output: mm4 and mm5
+// same as compute_mul_pixel but no shift inside
 AVS_FORCEINLINE void compute_pixel(const uint8_t* where,
-  __m128i full_f, __m128i mm3_pixel_mask, __m128i mm6_thresh, __m128i mm7_zero, __m128i& mm4, __m128i& mm5)
+  __m128i full_ff, __m128i center, __m128i thresh, __m128i zero, __m128i& result_lo, __m128i& result_hi)
 {
   auto mm0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(where));
-  auto res = check_bthreshold(mm0, full_f, mm3_pixel_mask, mm6_thresh, mm7_zero);
-  auto mm1 = _mm_unpacklo_epi8(res, mm7_zero);
-  auto mm2 = _mm_unpackhi_epi8(res, mm7_zero);
-  mm4 = _mm_add_epi16(mm4, mm1);
-  mm5 = _mm_add_epi16(mm5, mm2);
+  auto res = check_bthreshold(mm0, full_ff, center, thresh, zero);
+  auto mm1 = _mm_unpacklo_epi8(res, zero);
+  auto mm2 = _mm_unpackhi_epi8(res, zero);
+  result_lo = _mm_add_epi16(result_lo, mm1);
+  result_hi = _mm_add_epi16(result_hi, mm2);
 }

@@ -28,330 +28,325 @@ GNU General Public License for more details
 
 #include <emmintrin.h>
 
-// pinterf fixme: left side ptr-1 is dangerous!
-// the other left-right extremes are just not correct
-
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast121_c(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  edi_dest[0] = esi_fcc[0];
+  edi_dest[0] = p_fcc[0];
   for (int x = 1; x < width-1; x++) {
 
-    int src = esi_fcc[x];
+    int src = p_fcc[x];
 
     // current line: weight 2-4-2
     auto result = (src << 2);
-    compute_mul_pixel_c(esi_fcc[x - 1], 1, src, thresh, result);
-    compute_mul_pixel_c(esi_fcc[x + 1], 1, src, thresh, result);
+    compute_mul_pixel_c(p_fcc[x - 1], 1, src, thresh, result);
+    compute_mul_pixel_c(p_fcc[x + 1], 1, src, thresh, result);
 
     // prev line: weight 1-2-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
-    compute_mul_pixel_c(prevline_esi_fcc[x], 1, src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel_c(prevline_p_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(prevline_p_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x + 1], src, thresh, result);
 
     // next line: weight 1-2-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
-    compute_mul_pixel_c(nextline_esi_fcc[x], 1, src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+      nextline_p_fcc += pitch_c;
+    compute_pixel_c(nextline_p_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(nextline_p_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x + 1], src, thresh, result);
 
     // actual result *= 2
     result <<= 1;
 
     // weight 16
-    compute_mul_pixel_c(eax_fcp[x], 4, src, temp_thresh, result);
-    compute_mul_pixel_c(ebx_fcn[x], 4, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcp[x], 4, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcn[x], 4, src, temp_thresh, result);
 
     result = (result + 32) >> 6;
     edi_dest[x] = result;
   }
-  edi_dest[width-1] = esi_fcc[width - 1];
+  edi_dest[width-1] = p_fcc[width - 1];
 }
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_121_c(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  edi_dest[0] = esi_fcc[0];
+  edi_dest[0] = p_fcc[0];
   for (int x = 1; x < width-1; x++) {
 
-    int src = esi_fcc[x];
+    int src = p_fcc[x];
 
     // current line: weight 2-4-2
     int result = (src << 2);
-    compute_mul_pixel_c(esi_fcc[x - 1], 1, src, thresh, result);
-    compute_mul_pixel_c(esi_fcc[x + 1], 1, src, thresh, result);
+    compute_mul_pixel_c(p_fcc[x - 1], 1, src, thresh, result);
+    compute_mul_pixel_c(p_fcc[x + 1], 1, src, thresh, result);
 
     // prev line: weight 1-2-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
-    compute_mul_pixel_c(prevline_esi_fcc[x], 1, src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel_c(prevline_p_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(prevline_p_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x + 1], src, thresh, result);
 
     // next line: weight 1-2-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
-    compute_mul_pixel_c(nextline_esi_fcc[x], 1, src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+      nextline_p_fcc += pitch_c;
+    compute_pixel_c(nextline_p_fcc[x - 1], src, thresh, result);
+    compute_mul_pixel_c(nextline_p_fcc[x], 1, src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x + 1], src, thresh, result);
 
     // actual result *= 2
     result <<= 1;
 
     // temporal difference from 'fast': center*16 -> 1-2-1 prev, 2-4-2 current 1-2-1 next
     // previous
-    compute_mul_pixel_c(eax_fcp[x - 1], 1, src, temp_thresh, result);
-    compute_mul_pixel_c(eax_fcp[x], 2, src, temp_thresh, result);
-    compute_mul_pixel_c(eax_fcp[x + 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcp[x - 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcp[x], 2, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcp[x + 1], 1, src, temp_thresh, result);
     // prev line: weight 1-2-1
-    auto prevline_eax_fcp = eax_fcp;
+    auto prevline_p_fcp = p_fcp;
     if constexpr (!top)
-      prevline_eax_fcp -= pitch_p;
-    compute_pixel_c(prevline_eax_fcp[x - 1], src, temp_thresh, result);
-    compute_mul_pixel_c(prevline_eax_fcp[x], 1, src, temp_thresh, result);
-    compute_pixel_c(prevline_eax_fcp[x + 1], src, temp_thresh, result);
+      prevline_p_fcp -= pitch_p;
+    compute_pixel_c(prevline_p_fcp[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(prevline_p_fcp[x], 1, src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcp[x + 1], src, temp_thresh, result);
     // next line: weight 1-2-1
-    auto nextline_eax_fcp = eax_fcp;
+    auto nextline_p_fcp = p_fcp;
     if constexpr (!bottom)
-      nextline_eax_fcp += pitch_p;
-    compute_pixel_c(nextline_eax_fcp[x - 1], src, temp_thresh, result);
-    compute_mul_pixel_c(nextline_eax_fcp[x], 1, src, temp_thresh, result);
-    compute_pixel_c(nextline_eax_fcp[x + 1], src, temp_thresh, result);
+      nextline_p_fcp += pitch_p;
+    compute_pixel_c(nextline_p_fcp[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(nextline_p_fcp[x], 1, src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcp[x + 1], src, temp_thresh, result);
 
     // next
-    compute_mul_pixel_c(ebx_fcn[x - 1], 1, src, temp_thresh, result);
-    compute_mul_pixel_c(ebx_fcn[x], 2, src, temp_thresh, result);
-    compute_mul_pixel_c(ebx_fcn[x + 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcn[x - 1], 1, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcn[x], 2, src, temp_thresh, result);
+    compute_mul_pixel_c(p_fcn[x + 1], 1, src, temp_thresh, result);
     // prev line: weight 1-2-1
-    auto prevline_ebx_fcn = ebx_fcn;
+    auto prevline_p_fcn = p_fcn;
     if constexpr (!top)
-      prevline_ebx_fcn -= pitch_p;
-    compute_pixel_c(prevline_ebx_fcn[x - 1], src, temp_thresh, result);
-    compute_mul_pixel_c(prevline_ebx_fcn[x], 1, src, temp_thresh, result);
-    compute_pixel_c(prevline_ebx_fcn[x + 1], src, temp_thresh, result);
+      prevline_p_fcn -= pitch_p;
+    compute_pixel_c(prevline_p_fcn[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(prevline_p_fcn[x], 1, src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcn[x + 1], src, temp_thresh, result);
     // next line: weight 1-2-1
-    auto nextline_ebx_fcn = ebx_fcn;
+    auto nextline_p_fcn = p_fcn;
     if constexpr (!bottom)
-      nextline_ebx_fcn += pitch_p;
-    compute_pixel_c(nextline_ebx_fcn[x - 1], src, temp_thresh, result);
-    compute_mul_pixel_c(nextline_ebx_fcn[x], 1, src, temp_thresh, result);
-    compute_pixel_c(nextline_ebx_fcn[x + 1], src, temp_thresh, result);
+      nextline_p_fcn += pitch_p;
+    compute_pixel_c(nextline_p_fcn[x - 1], src, temp_thresh, result);
+    compute_mul_pixel_c(nextline_p_fcn[x], 1, src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcn[x + 1], src, temp_thresh, result);
 
     result = (result + 32) >> 6;
     edi_dest[x] = result;
   }
-  edi_dest[width - 1] = esi_fcc[width - 1];
+  edi_dest[width - 1] = p_fcc[width - 1];
 }
 
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast111_c(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  edi_dest[0] = esi_fcc[0];
+  edi_dest[0] = p_fcc[0];
   for (int x = 1; x < width-1; x++) {
 
-    int src = esi_fcc[x];
+    int src = p_fcc[x];
 
     // current line: weight 1-1-1
     int result = src;
-    compute_pixel_c(esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(esi_fcc[x + 1], src, thresh, result);
+    compute_pixel_c(p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(p_fcc[x + 1], src, thresh, result);
 
     // prev line: weight 1-1-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x], src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel_c(prevline_p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x], src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x + 1], src, thresh, result);
 
     // next line: weight 1-1-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x], src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+      nextline_p_fcc += pitch_c;
+    compute_pixel_c(nextline_p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x], src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x + 1], src, thresh, result);
 
     // weight 1
-    compute_pixel_c(eax_fcp[x], src, temp_thresh, result);
-    compute_pixel_c(ebx_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(p_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(p_fcn[x], src, temp_thresh, result);
 
     // 11 pixels; *2 for proper rounding 11/2 would not be nice
     //result = ((result << 1) + 11) / 22;
     result = (((result << 1) + 11) * (65536 / 22)) >> 16;
     edi_dest[x] = result;
   }
-  edi_dest[width - 1] = esi_fcc[width - 1];
+  edi_dest[width - 1] = p_fcc[width - 1];
 }
 
-// pl_pitch_p and pl_pitch_n is zero for top line
-// nl_pitch_p and nl_pitch_n is zero for bottom line
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_111_c(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  edi_dest[0] = esi_fcc[0];
+  edi_dest[0] = p_fcc[0];
   for (int x = 1; x < width-1; x++) {
 
-    int src = esi_fcc[x];
+    int src = p_fcc[x];
 
     // current line: weight 1-1-1
     int result = src;
-    compute_pixel_c(esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(esi_fcc[x + 1], src, thresh, result);
+    compute_pixel_c(p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(p_fcc[x + 1], src, thresh, result);
 
     // prev line: weight 1-1-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel_c(prevline_esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x], src, thresh, result);
-    compute_pixel_c(prevline_esi_fcc[x + 1], src, thresh, result);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel_c(prevline_p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x], src, thresh, result);
+    compute_pixel_c(prevline_p_fcc[x + 1], src, thresh, result);
 
     // next line: weight 1-1-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel_c(nextline_esi_fcc[x - 1], src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x], src, thresh, result);
-    compute_pixel_c(nextline_esi_fcc[x + 1], src, thresh, result);
+      nextline_p_fcc += pitch_c;
+    compute_pixel_c(nextline_p_fcc[x - 1], src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x], src, thresh, result);
+    compute_pixel_c(nextline_p_fcc[x + 1], src, thresh, result);
 
     // temporal difference from 'fast': center*1 -> 1-1-1 prev, 1-1-1 current 1-1-1 next
     // previous
-    compute_pixel_c(eax_fcp[x - 1], src, temp_thresh, result);
-    compute_pixel_c(eax_fcp[x], src, temp_thresh, result);
-    compute_pixel_c(eax_fcp[x + 1], src, temp_thresh, result);
+    compute_pixel_c(p_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(p_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(p_fcp[x + 1], src, temp_thresh, result);
     // prev line: weight 1-2-1
-    auto prevline_eax_fcp = eax_fcp;
+    auto prevline_p_fcp = p_fcp;
     if constexpr (!top)
-      prevline_eax_fcp -= pitch_p;
-    compute_pixel_c(prevline_eax_fcp[x - 1], src, temp_thresh, result);
-    compute_pixel_c(prevline_eax_fcp[x], src, temp_thresh, result);
-    compute_pixel_c(prevline_eax_fcp[x + 1], src, temp_thresh, result);
+      prevline_p_fcp -= pitch_p;
+    compute_pixel_c(prevline_p_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcp[x + 1], src, temp_thresh, result);
     // next line: weight 1-2-1
-    auto nextline_eax_fcp = eax_fcp;
+    auto nextline_p_fcp = p_fcp;
     if constexpr (!bottom)
-      nextline_eax_fcp += pitch_p;
-    compute_pixel_c(nextline_eax_fcp[x - 1], src, temp_thresh, result);
-    compute_pixel_c(nextline_eax_fcp[x], src, temp_thresh, result);
-    compute_pixel_c(nextline_eax_fcp[x + 1], src, temp_thresh, result);
+      nextline_p_fcp += pitch_p;
+    compute_pixel_c(nextline_p_fcp[x - 1], src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcp[x], src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcp[x + 1], src, temp_thresh, result);
 
     // next
-    compute_pixel_c(ebx_fcn[x - 1], src, temp_thresh, result);
-    compute_pixel_c(ebx_fcn[x], src, temp_thresh, result);
-    compute_pixel_c(ebx_fcn[x + 1], src, temp_thresh, result);
+    compute_pixel_c(p_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(p_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(p_fcn[x + 1], src, temp_thresh, result);
     // prev line: weight 1-2-1
-    auto prevline_ebx_fcn = ebx_fcn;
+    auto prevline_p_fcn = p_fcn;
     if constexpr (!top)
-      prevline_ebx_fcn -= pitch_p;
-    compute_pixel_c(prevline_ebx_fcn[x - 1], src, temp_thresh, result);
-    compute_pixel_c(prevline_ebx_fcn[x], src, temp_thresh, result);
-    compute_pixel_c(prevline_ebx_fcn[x + 1], src, temp_thresh, result);
+      prevline_p_fcn -= pitch_p;
+    compute_pixel_c(prevline_p_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(prevline_p_fcn[x + 1], src, temp_thresh, result);
     // next line: weight 1-2-1
-    auto nextline_ebx_fcn = ebx_fcn;
+    auto nextline_p_fcn = p_fcn;
     if constexpr (!bottom)
-      nextline_ebx_fcn += pitch_p;
-    compute_pixel_c(nextline_ebx_fcn[x - 1], src, temp_thresh, result);
-    compute_pixel_c(nextline_ebx_fcn[x], src, temp_thresh, result);
-    compute_pixel_c(nextline_ebx_fcn[x + 1], src, temp_thresh, result);
+      nextline_p_fcn += pitch_p;
+    compute_pixel_c(nextline_p_fcn[x - 1], src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcn[x], src, temp_thresh, result);
+    compute_pixel_c(nextline_p_fcn[x + 1], src, temp_thresh, result);
 
     // 27 pixels; *2 for proper rounding 27/2 would not be nice
     //result = ((result << 1) + 27) / 54;
     result = (((result << 1) + 27) * (65536/54)) >> 16;
     edi_dest[x] = result;
   }
-  edi_dest[width - 1] = esi_fcc[width - 1];
+  edi_dest[width - 1] = p_fcc[width - 1];
 }
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast121(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(-1);
+  auto zero = _mm_setzero_si128();
+  auto full_ff = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
-  for (int ecx = 0; ecx < width; ecx += 16) {
+  for (int x = 0; x < width; x += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p_fcc));
 
     // current line: weight 2-4-2
     // src*4
-    auto mm4 = _mm_unpacklo_epi8(src, mm7_zero);
-    auto mm5 = _mm_unpackhi_epi8(src, mm7_zero);
+    auto mm4 = _mm_unpacklo_epi8(src, zero);
+    auto mm5 = _mm_unpackhi_epi8(src, zero);
     mm4 = _mm_slli_epi16(mm4, 2);
     mm5 = _mm_slli_epi16(mm5, 2);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh);
+    auto simd_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
-    compute_mul_pixel(esi_fcc - 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(esi_fcc + 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+    compute_mul_pixel(p_fcc - 1, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcc + 1, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // prev line: weight 1-2-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel(prevline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(prevline_esi_fcc, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel(prevline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(prevline_p_fcc, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // next line: weight 1-2-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel(nextline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(nextline_esi_fcc, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcc += pitch_c;
+    compute_pixel(nextline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(nextline_p_fcc, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
-    esi_fcc += 16;
+    p_fcc += 16;
 
     // actual result *= 2
     mm4 = _mm_slli_epi16(mm4, 1);
     mm5 = _mm_slli_epi16(mm5, 1);
 
-    auto mm6_temp_thresh = _mm_set1_epi8(temp_thresh);
+    auto simd_temp_thresh = _mm_set1_epi8(temp_thresh);
 
     // weight 16
-    compute_mul_pixel(eax_fcp, 4, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    eax_fcp += 16;
-    compute_mul_pixel(ebx_fcn, 4, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    ebx_fcn += 16;
+    compute_mul_pixel(p_fcp, 4, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    p_fcp += 16;
+    compute_mul_pixel(p_fcn, 4, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    p_fcn += 16;
 
     mm4 = _mm_add_epi16(mm4, round_32);
     mm5 = _mm_add_epi16(mm5, round_32);
@@ -365,97 +360,97 @@ AVS_FORCEINLINE void compute_fast121(
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_121(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(-1);
+  auto zero = _mm_setzero_si128();
+  auto full_ff = _mm_set1_epi8(-1);
   auto round_32 = _mm_set1_epi16(32);
 
-  for (int ecx = 0; ecx < width; ecx += 16) {
+  for (int x = 0; x < width; x += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p_fcc));
 
     // current line: weight 2-4-2
     // src*4
-    auto mm4 = _mm_unpacklo_epi8(src, mm7_zero);
-    auto mm5 = _mm_unpackhi_epi8(src, mm7_zero);
+    auto mm4 = _mm_unpacklo_epi8(src, zero);
+    auto mm5 = _mm_unpackhi_epi8(src, zero);
     mm4 = _mm_slli_epi16(mm4, 2);
     mm5 = _mm_slli_epi16(mm5, 2);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh);
+    auto simd_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
-    compute_mul_pixel(esi_fcc - 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(esi_fcc + 1, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+    compute_mul_pixel(p_fcc - 1, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcc + 1, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // prev line: weight 1-2-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel(prevline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(prevline_esi_fcc, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel(prevline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(prevline_p_fcc, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // next line: weight 1-2-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel(nextline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(nextline_esi_fcc, 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcc += pitch_c;
+    compute_pixel(nextline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_mul_pixel(nextline_p_fcc, 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
-    esi_fcc += 16;
+    p_fcc += 16;
 
     // actual result *= 2
     mm4 = _mm_slli_epi16(mm4, 1);
     mm5 = _mm_slli_epi16(mm5, 1);
 
-    auto mm6_temp_thresh = _mm_set1_epi8(temp_thresh); // movq mm6, temp_thresh_mask
+    auto simd_temp_thresh = _mm_set1_epi8(temp_thresh); // movq mm6, temp_thresh_mask
 
     // temporal difference from 'fast': center*16 -> 1-2-1 prev, 2-4-2 current 1-2-1 next
-    compute_mul_pixel(eax_fcp - 1, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(eax_fcp, 2, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(eax_fcp + 1, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+    compute_mul_pixel(p_fcp - 1, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcp, 2, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcp + 1, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // prev line: weight 1-2-1
-    auto prevline_eax_fcp = eax_fcp;
+    auto prevline_p_fcp = p_fcp;
     if constexpr (!top)
-      prevline_eax_fcp -= pitch_p;
-    compute_pixel(prevline_eax_fcp - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(prevline_eax_fcp, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_eax_fcp + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcp -= pitch_p;
+    compute_pixel(prevline_p_fcp - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(prevline_p_fcp, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcp + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // next line: weight 1-2-1
-    auto nextline_eax_fcp = eax_fcp;
+    auto nextline_p_fcp = p_fcp;
     if constexpr (!bottom)
-      nextline_eax_fcp += pitch_p;
-    compute_pixel(nextline_eax_fcp - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(nextline_eax_fcp, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_eax_fcp + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcp += pitch_p;
+    compute_pixel(nextline_p_fcp - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(nextline_p_fcp, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcp + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
 
-    eax_fcp += 16;
+    p_fcp += 16;
 
-    compute_mul_pixel(ebx_fcn - 1, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(ebx_fcn, 2, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(ebx_fcn + 1, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+    compute_mul_pixel(p_fcn - 1, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcn, 2, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(p_fcn + 1, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // prev line: weight 1-2-1
-    auto prevline_ebx_fcn = ebx_fcn;
+    auto prevline_p_fcn = p_fcn;
     if constexpr (!top)
-      prevline_ebx_fcn -= pitch_n;
-    compute_pixel(prevline_ebx_fcn - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(prevline_ebx_fcn, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_ebx_fcn + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcn -= pitch_n;
+    compute_pixel(prevline_p_fcn - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(prevline_p_fcn, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcn + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // next line: weight 1-2-1
-    auto nextline_ebx_fcn = ebx_fcn;
+    auto nextline_p_fcn = p_fcn;
     if constexpr (!bottom)
-      nextline_ebx_fcn += pitch_n;
-    compute_pixel(nextline_ebx_fcn - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_mul_pixel(nextline_ebx_fcn, 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_ebx_fcn + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcn += pitch_n;
+    compute_pixel(nextline_p_fcn - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_mul_pixel(nextline_p_fcn, 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcn + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
 
-    ebx_fcn += 16;
+    p_fcn += 16;
 
     mm4 = _mm_add_epi16(mm4, round_32);
     mm5 = _mm_add_epi16(mm5, round_32);
@@ -469,56 +464,56 @@ AVS_FORCEINLINE void compute_121(
 
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_fast111(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(-1);
+  auto zero = _mm_setzero_si128();
+  auto full_ff = _mm_set1_epi8(-1);
   auto round_11 = _mm_set1_epi16(11);
   auto multi_11 = _mm_set1_epi16((65536 / 2) / 11);
 
-  for (int ecx = 0; ecx < width; ecx += 16) {
+  for (int x = 0; x < width; x += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p_fcc));
 
     // current line: weight 1-1-1
-    auto mm4 = _mm_unpacklo_epi8(src, mm7_zero);
-    auto mm5 = _mm_unpackhi_epi8(src, mm7_zero);
+    auto mm4 = _mm_unpacklo_epi8(src, zero);
+    auto mm5 = _mm_unpackhi_epi8(src, zero);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh);
+    auto simd_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
-    compute_pixel(esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+    compute_pixel(p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // prev line: weight 1-1-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
-    compute_pixel(prevline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcc -= pitch_c;
+    compute_pixel(prevline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // next line: weight 1-1-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel(nextline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcc += pitch_c;
+    compute_pixel(nextline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
-    esi_fcc += 16;
+    p_fcc += 16;
 
-    auto mm6_temp_thresh = _mm_set1_epi8(temp_thresh);
+    auto simd_temp_thresh = _mm_set1_epi8(temp_thresh);
 
     // weight 1
-    compute_pixel(eax_fcp, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    eax_fcp += 16;
-    compute_pixel(ebx_fcn, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    ebx_fcn += 16;
+    compute_pixel(p_fcp, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    p_fcp += 16;
+    compute_pixel(p_fcn, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    p_fcn += 16;
 
     // 11 pixels; *2 for proper rounding 11/2 would not be nice
 
@@ -539,92 +534,92 @@ AVS_FORCEINLINE void compute_fast111(
 // nl_pitch_p and nl_pitch_n is zero for bottom line
 template<bool top, bool bottom>
 AVS_FORCEINLINE void compute_111(
-  const uint8_t* eax_fcp, const uint8_t* esi_fcc, const uint8_t* ebx_fcn,
+  const uint8_t* p_fcp, const uint8_t* p_fcc, const uint8_t* p_fcn,
   uint8_t* edi_dest,
   int pitch_p, int pitch_c, int pitch_n,
   int width,
   int thresh, int temp_thresh
 )
 {
-  auto mm7_zero = _mm_setzero_si128();
-  auto full_f = _mm_set1_epi8(-1);
+  auto zero = _mm_setzero_si128();
+  auto full_ff = _mm_set1_epi8(-1);
   auto round_27 = _mm_set1_epi16(27);
   auto multi_27 = _mm_set1_epi16((65536 / 2) / 27);
 
-  for (int ecx = 0; ecx < width; ecx += 16) {
+  for (int x = 0; x < width; x += 16) {
 
-    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(esi_fcc));
+    auto src = _mm_loadu_si128(reinterpret_cast<const __m128i*>(p_fcc));
 
     // current line: weight 1-1-1
-    auto mm4 = _mm_unpacklo_epi8(src, mm7_zero);
-    auto mm5 = _mm_unpackhi_epi8(src, mm7_zero);
+    auto mm4 = _mm_unpacklo_epi8(src, zero);
+    auto mm5 = _mm_unpackhi_epi8(src, zero);
 
-    auto mm6_thresh = _mm_set1_epi8(thresh);
+    auto simd_thresh = _mm_set1_epi8(thresh);
     // mm4, mm5 input output
-    compute_pixel(esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+    compute_pixel(p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // prev line: weight 1-1-1
-    auto prevline_esi_fcc = esi_fcc;
+    auto prevline_p_fcc = p_fcc;
     if constexpr (!top)
-      prevline_esi_fcc -= pitch_c;
+      prevline_p_fcc -= pitch_c;
 
-    compute_pixel(prevline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
     // next line: weight 1-1-1
-    auto nextline_esi_fcc = esi_fcc;
+    auto nextline_p_fcc = p_fcc;
     if constexpr (!bottom)
-      nextline_esi_fcc += pitch_c;
-    compute_pixel(nextline_esi_fcc - 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_esi_fcc + 1, full_f, src, mm6_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcc += pitch_c;
+    compute_pixel(nextline_p_fcc - 1, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc, full_ff, src, simd_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcc + 1, full_ff, src, simd_thresh, zero, mm4, mm5);
 
-    esi_fcc += 16;
+    p_fcc += 16;
 
-    auto mm6_temp_thresh = _mm_set1_epi8(temp_thresh);
+    auto simd_temp_thresh = _mm_set1_epi8(temp_thresh);
 
     // temporal difference from 'fast': center*1 -> 1-1-1 prev, 1-1-1 current 1-1-1 next
-    compute_pixel(eax_fcp - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(eax_fcp, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(eax_fcp + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+    compute_pixel(p_fcp - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcp, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcp + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // prev line: weight 1-1-1
-    auto prevline_eax_fcp = eax_fcp;
+    auto prevline_p_fcp = p_fcp;
     if constexpr (!top)
-      prevline_eax_fcp -= pitch_p;
-    compute_pixel(prevline_eax_fcp - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_eax_fcp, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_eax_fcp + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcp -= pitch_p;
+    compute_pixel(prevline_p_fcp - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcp, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcp + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // next line: weight 1-1-1
-    auto nextline_eax_fcp = eax_fcp;
+    auto nextline_p_fcp = p_fcp;
     if constexpr (!bottom)
-      nextline_eax_fcp += pitch_p;
-    compute_pixel(nextline_eax_fcp - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_eax_fcp, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_eax_fcp + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcp += pitch_p;
+    compute_pixel(nextline_p_fcp - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcp, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcp + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
 
-    eax_fcp += 16;
+    p_fcp += 16;
 
-    compute_pixel(ebx_fcn - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(ebx_fcn, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(ebx_fcn + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+    compute_pixel(p_fcn - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcn, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(p_fcn + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // prev line: weight 1-1-1
-    auto prevline_ebx_fcn = ebx_fcn;
+    auto prevline_p_fcn = p_fcn;
     if constexpr (!top)
-      prevline_ebx_fcn -= pitch_n;
-    compute_pixel(prevline_ebx_fcn - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_ebx_fcn, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(prevline_ebx_fcn + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      prevline_p_fcn -= pitch_n;
+    compute_pixel(prevline_p_fcn - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcn, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(prevline_p_fcn + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
     // next line: weight 1-1-1
-    auto nextline_ebx_fcn = ebx_fcn;
+    auto nextline_p_fcn = p_fcn;
     if constexpr (!bottom)
-      nextline_ebx_fcn += pitch_n;
-    compute_pixel(nextline_ebx_fcn - 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_ebx_fcn, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
-    compute_pixel(nextline_ebx_fcn + 1, full_f, src, mm6_temp_thresh, mm7_zero, mm4, mm5);
+      nextline_p_fcn += pitch_n;
+    compute_pixel(nextline_p_fcn - 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcn, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
+    compute_pixel(nextline_p_fcn + 1, full_ff, src, simd_temp_thresh, zero, mm4, mm5);
 
-    ebx_fcn += 16;
+    p_fcn += 16;
 
     // 27 pixels; *2 for proper rounding 27/2 would not be nice
 
@@ -680,7 +675,6 @@ void process_simd(
   int thresh_mask)
 {
   // top
-  const int effective_width = width - 32;
   const int offset = width - 16 - 1;
 
   p_dest[0] = p_fcc[0];
