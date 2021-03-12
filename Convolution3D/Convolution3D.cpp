@@ -844,7 +844,7 @@ public:
 
     if (debug)
     {
-      sprintf(dbgString, "Convolution3D for Avisynth v1.1\n");
+      sprintf(dbgString, "Convolution3D for Avisynth\n");
 #ifdef _WIN32
       OutputDebugString(dbgString);
 #endif

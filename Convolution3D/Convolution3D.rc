@@ -27,8 +27,8 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -46,14 +46,14 @@ BEGIN
             VALUE "Comments", "Released under GPL\0"
             VALUE "CompanyName", "Vlad59\0"
             VALUE "FileDescription", "Convolution3D for Avisynth\0"
-            VALUE "FileVersion", "1, 1, 0, 0\0"
+            VALUE "FileVersion", "1, 2, 0, 0\0"
             VALUE "InternalName", "Convolution3D\0"
             VALUE "LegalCopyright", "Copyright (C)2003 Vlad59 (C)2021 et al.\0"
             VALUE "LegalTrademarks", "GPL\0"
             VALUE "OriginalFilename", "Convolution3D.dll\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "Convolution3D\0"
-            VALUE "ProductVersion", "1, 1, 0, 0\0"
+            VALUE "ProductVersion", "1, 2, 0, 0\0"
             VALUE "SpecialBuild", "\0"
         END
     END
