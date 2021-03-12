@@ -4,25 +4,12 @@ Convolution3d
 Copyright (c) 2002-2003 Sébastien LUCAS. All rights reserved.
 Additional work (c)2021 by Ferenc Pintér
 
-This file is subject to the terms of the GNU General Public License as
-published by the Free Software Foundation.  A copy of this license is
-included with this software distribution in the file COPYING.  If you
-do not have a copy, you may obtain a copy by writing to the Free
-Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-
-This software is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details
-
-*****************************************************************************************
-
 Convolution3D is an Avisynth filter that will apply a 3D convolution to all pixel of a frame.
 
 1 - How to use it : 
-Convolution3d (matrix=0, ythresh=3, cthresh=4, t_ythresh=3, t_cthresh=4, influence=3, debug=0)
+Convolution3d (matrix=0, ythresh=3, cthresh=4, t_ythresh=3, t_cthresh=4, influence=3, debug=0, opt=-1)
 
-Matrix choice : 
+Matrix choice : (previous frame, current frame, next frame)
   0 : original matrix : 
       1 2 1    2 4 2    1 2 1
       2 4 1    4 8 4    2 4 1
@@ -32,7 +19,21 @@ Matrix choice :
       1 1 1    1 1 1    1 1 1
       1 1 1    1 1 1    1 1 1
       1 1 1    1 1 1    1 1 1
-    This matrix is much usefull with animes or bad quality sources because it blur a little more (so removing more noise)
+    This matrix is much useful with animes or bad quality sources because it blur a little more (so removing more noise)
+  
+  "Fast" methods (matrix=2 and 3) are not getting 3x3 pixels from temporal (previous and next) frames, only the center pixel.
+
+  2 : original fast matrix : 
+      0 0  0   2 4 2    0 0  0
+      0 16 0   4 8 4    0 16 0
+      0 0  0   2 4 2    0 0  0
+    This matrix is useful for normal movie (not anime) because it keep more details
+  3 : full 1 fast matrix (great idea)
+      0 0 0    1 1 1    0 0 0
+      0 1 0    1 1 1    0 1 0
+      0 0 0    1 1 1    0 0 0
+
+The leftmost and rightmost pixels are simply copied, they are not processed.
 
 Temporal influence :
   It's used especially to speed up a little this filter and to avoid using temporal informations when not needed 
@@ -50,7 +51,7 @@ Temporal influence :
     then
       do spatial work (only 3*3 matrix)
     Else
-      do spatial and temporal work (3*3*3 matrix)
+      do spatial and temporal work (3*3*3 matrix or 1 +3*3 + 1)
 
   The lower it is -> the faster will be the filter but compressibility should be lower
   The higher it is -> the slower will be the filter but compressibility should be higher
@@ -84,8 +85,6 @@ You can increase the spatial one (especially the chroma threshold) but stop as s
 The Temporal one should be left below 10 to avoid ghosting.
 You should especially take care of the threshold with matrix 1, because with this matrix the current frame has less weight so it's easier to have ghosting.
 
-You can find some informations about how it works in : http://forum.doom9.org/showthread.php?s=&threadid=29829
-
 4 - Credits (2002)
 
 Thanks to
@@ -99,10 +98,21 @@ Thanks to
   Vlad59 (babas.lucas@laposte.net)
 
 Useful links:
-  http://avisynth.nl/index.php/Convolution3D#Spatio-Temporal_Denoisers
-  https://forum.doom9.org/showthread.php?s=&threadid=49806
+  Wiki: http://avisynth.nl/index.php/Convolution3D
+  Forum of beta in 2003: https://forum.doom9.org/showthread.php?s=&threadid=49806
+  How it works: http://forum.doom9.org/showthread.php?s=&threadid=29829
 
 Change log :
+
+2021/03/12 v1.2 (pinterf)
+  - Implement routines in pure C 
+  - Fix left/right edge buffer overread (theoretical crash)
+  - Add Y8 format
+  - parameter 'opt' when 0 it forces the C-only routines (disable SSE2)
+  - Add CMake build environment - linux/gcc compatible.
+  - Support INTEL_INTRINSIC define in code + CMake (non-x64 linux architecture support)
+  - Update README.md with build instructions
+  - Update documenation
 
 2021/03/11 v1.1 (pinterf)
   - Original code from http://web.archive.org/web/20130118045049/http://hellninjacommando.com/con3d/beta/con3d-yv12-beta5.zip 
